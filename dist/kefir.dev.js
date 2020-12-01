@@ -248,6 +248,15 @@ extend(Dispatcher.prototype, {
   }
 });
 
+exports.activeObservables = [];
+
+function clearActiveObservables() {
+  exports.activeObservables = [];
+}
+
+/* dev-code */
+/* end-dev-code */
+
 function Observable() {
   this._dispatcher = new Dispatcher();
   this._active = false;
@@ -255,6 +264,29 @@ function Observable() {
   this._activating = false;
   this._logHandlers = null;
   this._spyHandlers = null;
+
+  /* dev-code */
+  function proxyActivation(f) {
+    return new Proxy(f, {
+      apply: function (target, thisArg, args) {
+        exports.activeObservables.push(thisArg);
+        target.apply(thisArg, args);
+      }
+    });
+  }
+
+  function proxyDeactivation(f) {
+    return new Proxy(f, {
+      apply: function (target, thisArg, args) {
+        exports.activeObservables.splice(exports.activeObservables.indexOf(thisArg), 1);
+        target.apply(thisArg, args);
+      }
+    });
+  }
+
+  this._onActivation = proxyActivation(this._onActivation);
+  this._onDeactivation = proxyDeactivation(this._onDeactivation);
+  /* end-dev-code */
 }
 
 extend(Observable.prototype, {
@@ -3255,6 +3287,9 @@ function endOnError(obs) {
   return new (obs._ofSameType(S$41, P$36))(obs);
 }
 
+/* dev-code */
+/* end-dev-code */
+
 // Create a stream
 // -----------------------------------------------------------------------------
 
@@ -3639,7 +3674,11 @@ var Kefir = {
   Pool: Pool,
   pool: pool,
   repeat: repeat,
-  staticLand: staticLand
+  staticLand: staticLand,
+  /* dev-code */
+  activeObservables: exports.activeObservables,
+  clearActiveObservables: clearActiveObservables
+  /* end-dev-code */
 };
 
 Kefir.Kefir = Kefir;
@@ -3671,6 +3710,7 @@ exports.Pool = Pool;
 exports.pool = pool;
 exports.repeat = repeat;
 exports.staticLand = staticLand;
+exports.clearActiveObservables = clearActiveObservables;
 exports['default'] = Kefir;
 
 Object.defineProperty(exports, '__esModule', { value: true });
