@@ -3,6 +3,10 @@ import {VALUE, ERROR, ANY, END} from './constants'
 import {Dispatcher, callSubscriber} from './dispatcher'
 import {findByPred} from './utils/collections'
 
+/* dev-code */
+import {activeObservables} from './utils/dev'
+/* end-dev-code */
+
 function Observable() {
   this._dispatcher = new Dispatcher()
   this._active = false
@@ -10,6 +14,29 @@ function Observable() {
   this._activating = false
   this._logHandlers = null
   this._spyHandlers = null
+
+  /* dev-code */
+  function proxyActivation (f) {
+    return new Proxy(f, {
+      apply (target, thisArg, args) {
+        exports.activeObservables.push(thisArg)
+        target.apply(thisArg, args)
+      }
+    })
+  }
+
+  function proxyDeactivation (f) {
+    return new Proxy(f, {
+      apply (target, thisArg, args) {
+        exports.activeObservables.splice(exports.activeObservables.indexOf(thisArg), 1)
+        target.apply(thisArg, args)
+      }
+    })
+  }
+
+  this._onActivation = proxyActivation(this._onActivation)
+  this._onDeactivation = proxyDeactivation(this._onDeactivation)
+  /* end-dev-code */
 }
 
 extend(Observable.prototype, {
