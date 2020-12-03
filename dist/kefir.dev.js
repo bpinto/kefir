@@ -266,26 +266,17 @@ function Observable() {
   this._spyHandlers = null;
 
   /* dev-code */
-  function proxyActivation(f) {
-    return new Proxy(f, {
-      apply: function (target, thisArg, args) {
-        exports.activeObservables.push(thisArg);
-        target.apply(thisArg, args);
-      }
-    });
-  }
+  var originalOnActivation = this._onActivation;
+  this._onActivation = function _onActivation() {
+    originalOnActivation.apply(this, arguments);
+    exports.activeObservables.push(this);
+  };
 
-  function proxyDeactivation(f) {
-    return new Proxy(f, {
-      apply: function (target, thisArg, args) {
-        exports.activeObservables.splice(exports.activeObservables.indexOf(thisArg), 1);
-        target.apply(thisArg, args);
-      }
-    });
-  }
-
-  this._onActivation = proxyActivation(this._onActivation);
-  this._onDeactivation = proxyDeactivation(this._onDeactivation);
+  var originalOnDeactivation = this._onDeactivation;
+  this._onDeactivation = function _onDeactivation() {
+    originalOnDeactivation.apply(this, arguments);
+    exports.activeObservables.splice(exports.activeObservables.indexOf(this), 1);
+  };
   /* end-dev-code */
 }
 
