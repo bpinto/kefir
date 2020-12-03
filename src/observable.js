@@ -16,26 +16,17 @@ function Observable() {
   this._spyHandlers = null
 
   /* dev-code */
-  function proxyActivation (f) {
-    return new Proxy(f, {
-      apply (target, thisArg, args) {
-        exports.activeObservables.push(thisArg)
-        target.apply(thisArg, args)
-      }
-    })
+  const originalOnActivation = this._onActivation
+  this._onActivation = function _onActivation() {
+    originalOnActivation.apply(this, arguments);
+    activeObservables.push(this)
   }
 
-  function proxyDeactivation (f) {
-    return new Proxy(f, {
-      apply (target, thisArg, args) {
-        exports.activeObservables.splice(exports.activeObservables.indexOf(thisArg), 1)
-        target.apply(thisArg, args)
-      }
-    })
+  const originalOnDeactivation = this._onDeactivation
+  this._onDeactivation = function _onDeactivation() {
+    originalOnDeactivation.apply(this, arguments);
+    activeObservables.splice(activeObservables.indexOf(this), 1)
   }
-
-  this._onActivation = proxyActivation(this._onActivation)
-  this._onDeactivation = proxyDeactivation(this._onDeactivation)
   /* end-dev-code */
 }
 
